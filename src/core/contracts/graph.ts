@@ -16,6 +16,8 @@
  * is owned outright by its stream — cross-domain schema changes go through
  * master. Pure types + protocol docs + tiny pure helpers. See docs/archive/vision.md.
  */
+
+import { parseFilePaths } from "../file-paths.ts";
 // ─── Knowledge graph (vision §1 — global, cross-session) ────────────────────
 
 import type { CallUsage, ExtractionRunUsage } from "./chat.ts";
@@ -337,6 +339,18 @@ export interface Position {
  *  place. */
 export const TITLE_MAX_CHARS = 72;
 
+/** Attached files and folders reach the first message as quoted rooted
+ *  paths (core/file-paths.ts). In a title only the name says anything —
+ *  "Week 3 notes.pdf", not "`/Users/me/Documents/…/Week 3 notes.pdf`" — so
+ *  each path becomes its last segment; other text is untouched. */
+function withFileNames(prompt: string): string {
+	return parseFilePaths(prompt).map((part) => {
+		if (part.kind === "text") return part.text;
+		const segments = part.path.split(/[\\/]+/).filter(Boolean);
+		return segments.at(-1) ?? part.path;
+	}).join("");
+}
+
 /** Derive a short chat title from the learner's first message (pure).
  *  Smart truncation (owner, 2026-10-06): the cut snaps to a word boundary
  *  AT OR UNDER the cap — a title never ends mid-word. The one exception
@@ -345,7 +359,7 @@ export const TITLE_MAX_CHARS = 72;
  *  single spaces first, so boundaries are always single-space boundaries.
  *  Used on chat creation; deterministic so tests can pin it. */
 export function titleFromPrompt(prompt: string): string {
-	const oneLine = prompt.replace(/\s+/g, " ").trim();
+	const oneLine = withFileNames(prompt).replace(/\s+/g, " ").trim();
 	if (oneLine.length <= TITLE_MAX_CHARS) return oneLine;
 	// Last space among the first TITLE_MAX_CHARS characters; the cut sits
 	// before it so no trailing space rides into the title.

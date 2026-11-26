@@ -53,4 +53,15 @@ describe("titleFromPrompt (smart truncation)", () => {
 		assert.ok(!out.slice(0, -1).endsWith(" "));
 		assert.ok(out.endsWith("…"));
 	});
+
+	it("attached file and folder paths become their names", () => {
+		assert.equal(titleFromPrompt("`/data/Attachments/NVIDIA macro environment PESTEL research (Member #2).pdf`"), "NVIDIA macro environment PESTEL research (Member #2).pdf");
+		assert.equal(titleFromPrompt("Explain `/Users/me/Lectures/week 3/notes.pdf` please"), "Explain notes.pdf please");
+		assert.equal(titleFromPrompt("Summarise `C:\\Users\\me\\Course\\` for me"), "Summarise Course for me");
+		assert.equal(titleFromPrompt("`` /odd/`name`.txt ``"), "`name`.txt");
+	});
+
+	it("text that only looks like code stays as typed", () => {
+		assert.equal(titleFromPrompt("What does `npm ci` do?"), "What does `npm ci` do?");
+	});
 });
