@@ -62,6 +62,9 @@ jobs:
       - name: Typecheck
         working-directory: ipad
         run: npm run typecheck
+      - name: Unit tests
+        working-directory: ipad
+        run: npm test
       - name: Build web bundle
         working-directory: ipad
         run: npm run build

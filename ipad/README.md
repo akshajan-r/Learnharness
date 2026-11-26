@@ -32,6 +32,18 @@ How it works: [`bridge/server.ts`](bridge/server.ts) listens on `127.0.0.1:8790`
 - **Claude Code:** the iPad sends each model turn; the bridge runs LearnHarness's own Claude Code engine and streams its events back (gzip'd NDJSON), including tool calls and held processes waiting for your answers.
 - **Code running:** the iPad sends the program, arguments, stdin and working files; they run in a fresh temporary folder (60 s limit). Only allowlisted programs run: `LH_BRIDGE_PROGRAMS`, default `python,python3,py,node`.
 
+## Sync with the desktop app
+
+With the laptop bridge paired, the iPad and the **desktop LearnHarness app on that laptop** keep the same sessions and knowledge graph. Each device keeps its full local copy and works offline; sync happens automatically (on launch, on returning to the app, a few seconds after each reply, and every 3 minutes) whenever `npm run bridge` is running. An unreachable laptop is silent; other problems show a short notice.
+
+- **Sessions** sync as whole files. A change on one side is copied over. Deleting on one side deletes on the other, unless the other side changed it since the last sync, in which case the change is kept. If both sides changed the same session, the newer one keeps its place and the other is kept as "… (conflict copy)" on both devices.
+- **Knowledge graph:** its ledgers merge line by line (additions from both devices, removals from either), and source organization merges per entry. Both apps must use the same graph format; otherwise the graph is skipped with a notice. Node positions and graph display settings stay per device.
+- Sessions with a reply in progress are synced on a later round. On the laptop, the bridge writes only when a file is unchanged since the iPad read it, so nothing the desktop app writes meanwhile is overwritten.
+- Attached files stay on the device they were attached on.
+- The desktop app may need a session reopened (or a restart) to show changes that arrived while it was open.
+
+The base for the three-way merges lives in `/private/sync-base.json` on the iPad. The bridge syncs with the desktop app's data folder (`%APPDATA%\LearnHarness\data` on Windows); set `LH_SYNC_DATA_DIR` to use another. Merge rules: [`src/sync/merge.ts`](src/sync/merge.ts) (unit tests: `npm test`); client: [`src/sync/client.ts`](src/sync/client.ts); laptop side: [`bridge/sync-hub.ts`](bridge/sync-hub.ts).
+
 ## How it works
 
 | Desktop | iPad |

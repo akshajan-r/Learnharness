@@ -29,6 +29,7 @@ import { constants as zlibConstants, createGzip } from "node:zlib";
 import type { Api, Model, SimpleStreamOptions, TranscriptContext } from "@earendil-works/pi-ai";
 import { streamClaudeCode } from "../../src/agent/claude-code/stream.ts";
 import { inspectClaudeInstallation } from "../../src/agent/claude-code/installation.ts";
+import { SyncHub, desktopDataDir } from "./sync-hub.ts";
 
 const PORT = Number(process.env.LH_BRIDGE_PORT ?? 8790);
 const PROGRAMS = new Set((process.env.LH_BRIDGE_PROGRAMS ?? "python,python3,py,node").split(",").map((p) => p.trim().toLowerCase()).filter(Boolean));
@@ -36,7 +37,8 @@ const RUN_TIMEOUT_MS = 60_000;
 const OUTPUT_LIMIT = 1024 * 1024;
 const BODY_LIMIT = 64 * 1024 * 1024;
 const ALLOWED_ORIGINS = new Set(["capacitor://localhost", "http://localhost:4173", "http://localhost:5173"]);
-const BRIDGE_VERSION = 1;
+const BRIDGE_VERSION = 2;
+const SYNC = new SyncHub(desktopDataDir());
 
 // ── Pairing code ──
 
@@ -229,6 +231,14 @@ const server = http.createServer(async (req, res) => {
 			await claudeCodeStream(req, res);
 		} else if (req.method === "POST" && url.pathname === "/v1/run") {
 			await runProgram(req, res);
+		} else if (req.method === "GET" && url.pathname === "/v1/sync/state") {
+			sendJson(res, 200, SYNC.state());
+		} else if (req.method === "POST" && url.pathname === "/v1/sync/get") {
+			const body = await readJson(req);
+			sendJson(res, 200, SYNC.get(Array.isArray(body.paths) ? body.paths.map(String) : []));
+		} else if (req.method === "POST" && url.pathname === "/v1/sync/put") {
+			const body = await readJson(req);
+			sendJson(res, 200, SYNC.put(Array.isArray(body.changes) ? body.changes as Array<{ path: string; text: string | null; expect: string | null }> : []));
 		} else {
 			sendJson(res, 404, { error: "Not found" });
 		}
@@ -246,6 +256,10 @@ function run(file: string, args: string[]): Promise<{ ok: boolean; out: string }
 
 server.listen(PORT, "127.0.0.1", async () => {
 	console.log(`\nLearnHarness laptop bridge listening on 127.0.0.1:${PORT}`);
+	if (process.env.LH_BRIDGE_NO_SERVE === "1") {
+		console.log("LH_BRIDGE_NO_SERVE=1: not publishing on the tailnet (local testing).");
+		return;
+	}
 	const status = await run("tailscale", ["status", "--json"]);
 	let dnsName = "";
 	try { dnsName = String(JSON.parse(status.out).Self?.DNSName ?? "").replace(/\.$/, ""); } catch { /* not running */ }
@@ -264,6 +278,7 @@ server.listen(PORT, "127.0.0.1", async () => {
 	const claude = await inspectClaudeInstallation();
 	console.log(`Published on your tailnet at ${url}`);
 	console.log(`Claude Code: ${claude.state}${claude.version ? ` (${claude.version})` : ""} · Programs: ${[...PROGRAMS].join(", ")}`);
+	console.log(`Sync: chats and knowledge graph with ${SYNC.root}`);
 	console.log("\nPair the iPad: point its camera at this code and tap the banner (once; it's remembered):\n");
 	const { default: qrcode } = await import("qrcode-terminal");
 	qrcode.generate(link, { small: true });

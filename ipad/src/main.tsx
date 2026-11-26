@@ -57,6 +57,8 @@ async function boot() {
 	catch (error) { console.error("[plugins] Initialization failed; plugin management will report the error:", error); }
 
 	void installBridgePairing();
+	// Chats + knowledge graph sync with the desktop app on the paired laptop.
+	void import("./sync/schedule.ts").then(({ installSync }) => installSync());
 
 	const boot = server.readThemeBoot();
 	const html = document.documentElement;
