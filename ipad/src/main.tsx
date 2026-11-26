@@ -23,7 +23,7 @@ function fail(error: unknown) {
 
 async function boot() {
 	// Inspection handle for dev checks (scripts/*.mjs) and Safari Web Inspector.
-	Object.assign(globalThis, { __lh: { vol, flush } });
+	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts") } });
 	await restore();
 	installAppAssets();
 	installApiFetch();

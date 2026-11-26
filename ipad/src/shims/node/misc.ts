@@ -89,21 +89,54 @@ export function isIP(input: string): 0 | 4 | 6 {
 	}
 	return 0;
 }
+/** node:net BlockList over IPv4 and IPv6 (addresses as BigInt). */
+type Family = "ipv4" | "ipv6";
 export class BlockList {
-	#rules: Array<(addr: string) => boolean> = [];
-	addAddress(address: string): void { this.#rules.push((a) => a === address); }
-	addRange(start: string, end: string): void { this.#rules.push((a) => a >= start && a <= end); }
-	addSubnet(net: string, prefix: number): void {
-		const base = ipv4ToInt(net);
-		if (base === null) return;
-		const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
-		this.#rules.push((a) => { const v = ipv4ToInt(a); return v !== null && ((v & mask) >>> 0) === ((base & mask) >>> 0); });
+	#rules: Array<(value: bigint, family: Family) => boolean> = [];
+	addAddress(address: string, family?: Family): void {
+		const target = parseIp(address, family);
+		if (target) this.#rules.push((v, f) => f === target.family && v === target.value);
 	}
-	check(address: string): boolean { return this.#rules.some((r) => r(address)); }
+	addRange(start: string, end: string, family?: Family): void {
+		const lo = parseIp(start, family), hi = parseIp(end, family);
+		if (lo && hi && lo.family === hi.family) this.#rules.push((v, f) => f === lo.family && v >= lo.value && v <= hi.value);
+	}
+	addSubnet(net: string, prefix: number, family?: Family): void {
+		const base = parseIp(net, family);
+		if (!base) return;
+		const bits = base.family === "ipv4" ? 32n : 128n;
+		const host = bits - BigInt(prefix);
+		const mask = ((1n << bits) - 1n) ^ ((1n << host) - 1n);
+		this.#rules.push((v, f) => f === base.family && (v & mask) === (base.value & mask));
+	}
+	check(address: string, family?: Family): boolean {
+		const ip = parseIp(address, family);
+		return !!ip && this.#rules.some((rule) => rule(ip.value, ip.family));
+	}
 }
-function ipv4ToInt(ip: string): number | null {
-	if (!IPV4.test(ip)) return null;
-	return ip.split(".").reduce((acc, part) => ((acc << 8) + Number(part)) >>> 0, 0);
+
+function parseIp(input: string, family?: Family): { family: Family; value: bigint } | null {
+	const ip = input.replace(/^\[|\]$/g, "");
+	if ((!family || family === "ipv4") && IPV4.test(ip)) {
+		return { family: "ipv4", value: ip.split(".").reduce((acc, part) => (acc << 8n) + BigInt(Number(part)), 0n) };
+	}
+	if ((!family || family === "ipv6") && isIP(ip) === 6) {
+		const value = ipv6ToBigInt(ip);
+		return value === null ? null : { family: "ipv6", value };
+	}
+	return null;
+}
+
+function ipv6ToBigInt(ip: string): bigint | null {
+	// The URL parser canonicalizes: "::ffff:1.2.3.4" → "::ffff:102:304", zones dropped.
+	let canonical: string;
+	try { canonical = new URL(`http://[${ip.split("%")[0]}]/`).hostname.slice(1, -1); } catch { return null; }
+	const [head, tail] = canonical.includes("::") ? canonical.split("::") as [string, string] : [canonical, null];
+	const left = head ? head.split(":") : [];
+	const right = tail ? tail.split(":") : [];
+	const groups = tail === null ? left : [...left, ...Array(8 - left.length - right.length).fill("0"), ...right];
+	if (groups.length !== 8) return null;
+	return groups.reduce((acc, g) => (acc << 16n) + BigInt(parseInt(g || "0", 16)), 0n);
 }
 
 // ── node:module ──

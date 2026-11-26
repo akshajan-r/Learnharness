@@ -10,6 +10,8 @@
  * so there is nothing for it to guard.
  */
 
+import { nativeFetch as nativeHttpFetch, prefersNative } from "./native-http.ts";
+
 type Handler = (req: Request, ctx: { params: Promise<Record<string, string | string[]>> }) => Response | Promise<Response>;
 type RouteModule = Partial<Record<string, Handler>>;
 
@@ -107,11 +109,13 @@ export async function dispatch(incoming: Request): Promise<Response> {
 
 const nativeFetch = globalThis.fetch.bind(globalThis);
 
-/** Route same-origin /api requests through dispatch(); everything else
- *  (model providers, search, page fetches) goes to the network as usual. */
+/** Route same-origin /api requests through dispatch(); search APIs that
+ *  don't allow browser requests through native networking (native-http.ts);
+ *  everything else (model providers, streaming) to the web view's fetch. */
 export function installApiFetch(): void {
 	globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
 		const url = new URL(input instanceof Request ? input.url : String(input), location.href);
+		if (prefersNative(url)) return nativeHttpFetch(input instanceof Request ? input : url, init);
 		if (!isApiUrl(url)) return nativeFetch(input, init);
 		const request = input instanceof Request ? new Request(input, init) : new Request(url, init);
 		return dispatch(request);
