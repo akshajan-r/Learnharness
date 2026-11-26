@@ -63,6 +63,9 @@ import type { ChatGPTControlBridge, NativeSubscriptionControlBridge } from "@/sr
 import type { UpdateState } from "@/components/settings/update-settings.tsx";
 import { FilePathDropZone } from "@/components/file-path-drop-zone";
 const SIDEBAR_AUTOCLOSE = 928;
+/** iPad app: below this, Split View / Slide Over would leave the page under
+ *  ~410px beside the 288px sidebar; a full-screen portrait iPad stays above. */
+const IPAD_SIDEBAR_AUTOCLOSE = 700;
 
 // Module scope, guarded for SSR (the server has no navigator).
 const IS_ELECTRON = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
@@ -157,9 +160,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	// fires only on actual resizes — a boolean compare, no layout work.
 	// Both this and the mount effect land before the first paint, so a
 	// narrow window never flashes the open sidebar on load.
+	// The iPad app (ipad/) applies the same auto-close at its own threshold
+	// (Split View / Slide Over widths), but can't widen its window: there an
+	// explicit open while narrow shows the sidebar until the width changes.
+	const [narrowOverride, setNarrowOverride] = useState(false);
+	// Shown over a narrow iPad layout, the sidebar behaves like a drawer:
+	// picking a session (any navigation) puts it away.
+	const pathname = usePathname();
+	useEffect(() => { setNarrowOverride(false); }, [pathname]);
 	useEffect(() => {
-		if (!IS_ELECTRON) return; // plain-browser tabs open freely
-		const onResize = () => setNarrow(window.innerWidth < SIDEBAR_AUTOCLOSE);
+		const ipad = window.lh?.platform === "ipad";
+		if (!IS_ELECTRON && !ipad) return; // plain-browser tabs open freely
+		const threshold = ipad ? IPAD_SIDEBAR_AUTOCLOSE : SIDEBAR_AUTOCLOSE;
+		const onResize = () => { setNarrow(window.innerWidth < threshold); setNarrowOverride(false); };
 		onResize();
 		window.addEventListener("resize", onResize);
 		return () => window.removeEventListener("resize", onResize);
@@ -171,17 +184,27 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		// listener flips `narrow` and the sidebar appears. The preference
 		// persists like any other open, so a restart at a narrow width
 		// still auto-restores when widened.
-		if (narrow && !open) {
-			localStorage.setItem(STORAGE_KEY, "0");
-			setOpen(true);
-			window.lh?.expandWindow();
-			return;
+		if (narrow && !(open && narrowOverride)) {
+			if (!window.lh?.expandWindow) {
+				// No window to widen (iPad): show it over the narrow layout.
+				if (!open) localStorage.setItem(STORAGE_KEY, "1");
+				setOpen(true);
+				setNarrowOverride(true);
+				return;
+			}
+			if (!open) {
+				localStorage.setItem(STORAGE_KEY, "0");
+				setOpen(true);
+				window.lh.expandWindow();
+				return;
+			}
 		}
+		if (narrow && narrowOverride) { setNarrowOverride(false); return; }
 		setOpen((v) => {
 			localStorage.setItem(STORAGE_KEY, v ? "0" : "1");
 			return !v;
 		});
-	}, [narrow, open]);
+	}, [narrow, narrowOverride, open]);
 
 	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
 	// and the context answers on exactly that name — the shared spelling
@@ -197,9 +220,10 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, [toggle]);
 
 	return (
-		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
+		<SidebarContext.Provider value={{ open: open && (!narrow || narrowOverride), toggle }}>
 			{/* transitions gated on mount: no slide-in flash on page load */}
-			<div className={cn("flex h-dvh", mounted && "[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
+			<div className={cn("flex h-dvh", mounted && "[&_.sidebar-motion]:transition-[width,margin,opacity]")}
+				data-sidebar-overlay={open && narrow && narrowOverride ? "" : undefined}>{children}</div>
 		</SidebarContext.Provider>
 	);
 }

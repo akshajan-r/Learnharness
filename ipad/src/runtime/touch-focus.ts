@@ -60,7 +60,21 @@ function installButtonFocusParity(): void {
 	}, { capture: true });
 }
 
+/** A tap outside the drawer-style sidebar (narrow widths) puts it away. */
+function installSidebarDrawerDismiss(): void {
+	addEventListener("pointerdown", (event) => {
+		const overlay = document.querySelector("[data-sidebar-overlay]");
+		if (!overlay || !(event.target instanceof Element)) return;
+		const aside = overlay.querySelector(":scope > aside");
+		if (aside?.contains(event.target)) return;
+		// Menus and dialogs opened from the sidebar render elsewhere.
+		if (event.target.closest('[data-lh-menu], [role="menu"], [role="dialog"], [role="alertdialog"], [data-lh-diagnostics]')) return;
+		dispatchEvent(new CustomEvent("lh:kbd-toggle-sidebar"));
+	}, { capture: true });
+}
+
 export function installTouchFocusPolicy(): void {
+	installSidebarDrawerDismiss();
 	const markIntent = () => { lastIntentAt = performance.now(); };
 	// Capture phase: recorded before any handler that might focus a field.
 	for (const type of ["pointerdown", "touchend", "click", "keydown"] as const) {

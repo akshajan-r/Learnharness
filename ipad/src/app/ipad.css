@@ -28,3 +28,20 @@ body {
 .min-h-dvh {
 	min-height: calc(100dvh - var(--lh-safe-top) - var(--lh-safe-bottom)) !important;
 }
+
+/*
+ * Narrow widths (Split View, Slide Over): the sidebar auto-closes
+ * (components/sidebar.tsx, iPad threshold). Opened there by hand, it floats
+ * over the page as a drawer instead of squeezing it.
+ */
+[data-sidebar-overlay] {
+	position: relative;
+}
+[data-sidebar-overlay] > aside.sidebar-motion {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 50;
+	box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45);
+}

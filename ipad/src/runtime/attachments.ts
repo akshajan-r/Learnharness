@@ -47,5 +47,6 @@ export function getPathForFile(file: File): string {
 export function installAttachmentBridge(): void {
 	vol.mkdirSync(HOME, { recursive: true });
 	const w = window as unknown as { lh?: Record<string, unknown> };
-	w.lh = { ...(w.lh ?? {}), getPathForFile };
+	// platform "ipad" also lets shared UI adapt (sidebar auto-close at Split View widths).
+	w.lh = { ...(w.lh ?? {}), platform: "ipad", getPathForFile };
 }
