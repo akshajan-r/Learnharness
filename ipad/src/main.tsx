@@ -14,6 +14,7 @@ import { installAppAssets } from "./runtime/assets.ts";
 import { installApiFetch } from "./runtime/api.ts";
 import { installTouchFocusPolicy } from "./runtime/touch-focus.ts";
 import { installPdfjs } from "./runtime/pdfjs.ts";
+import { installAttachmentBridge } from "./runtime/attachments.ts";
 
 function fail(error: unknown) {
 	console.error(error);
@@ -24,12 +25,13 @@ function fail(error: unknown) {
 
 async function boot() {
 	// Inspection handle for dev checks (scripts/*.mjs) and Safari Web Inspector.
-	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts"), image: () => import("@/src/agent/tools/learner-image.ts"), resize: () => import("@/src/agent/image-processing/resize.ts") } });
+	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts"), image: () => import("@/src/agent/tools/learner-image.ts"), resize: () => import("@/src/agent/image-processing/resize.ts"), fsTools: () => import("@/src/agent/tools/fs-shared.ts") } });
 	await restore();
 	installAppAssets();
 	installApiFetch();
 	installTouchFocusPolicy();
 	installPdfjs();
+	installAttachmentBridge();
 
 	await import("katex/dist/katex.min.css");
 	await import("@/app/globals.css");

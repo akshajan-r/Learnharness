@@ -14,7 +14,10 @@ export class IpadUnavailableError extends Error {
 const unavailable = (what: string) => () => { throw new IpadUnavailableError(what); };
 
 // ── node:os ──
-export const HOME = "/home";
+/** The learner's home folder: attached files live here (in the Files app:
+ *  On My iPad › LearnHarness › Attachments), so the agent's file tools
+ *  default to them. */
+export const HOME = "/data/Attachments";
 export const os = {
 	homedir: () => HOME,
 	tmpdir: () => "/tmp",

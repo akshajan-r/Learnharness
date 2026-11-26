@@ -33,14 +33,15 @@ Nothing outside `ipad/` changes to make this work. The desktop code is bundled u
 - Settings, providers and models; teaching and practice sessions with streamed replies.
 - Learning records as plain files you can browse in the Files app and that are included in iPad backups. Keys stay out of the Files app.
 - No surprise keyboard: the on-screen keyboard appears only when you tap a text field, and the app shrinks to the space above it.
+- Attachments: the paperclip (or a drag in Split View) copies files, photos or camera shots into **LearnHarness › Attachments**, the agent's home folder. Files you put there with the Files app are picked up on the next launch.
+- Research: web pages, PDFs and search APIs go through iOS networking (no web-view CORS limits). Private and local addresses are refused before each hop, using a DNS-over-HTTPS lookup for host names.
+- Visuals, PDF figures and demo checks, with WebKit in place of resvg, Skia and headless Chrome (a sandboxed hidden frame runs demos). Photos are normalized with photon's browser build.
 - Model calls straight from the iPad. Verified end to end with a custom OpenAI-compatible endpoint. Providers whose APIs accept browser requests (Anthropic, OpenAI, OpenRouter, Google) should work the same way but haven't been tested with real keys yet. A provider that blocks browser requests (CORS) will need the native-networking path from phase 1.
 
 Not yet (phase 1 and later):
 
-- **Visuals, PDF figures and demo checks:** they need native Node add-ons (resvg, Skia canvas) or headless Chrome. They fail with a clear "not available on iPad" error until WebAssembly/WebKit versions replace them.
-- **Background workers** (image resizing) and **plugins** whose backends load Node modules.
-- **Research web fetches** of arbitrary pages are blocked by web-view CORS rules. Phase 1 moves them to native iOS networking. It also restores the desktop's check of the address each connection actually reaches; today only private/local IP literals and local host names are refused.
-- **Attaching files** (the desktop sends file paths) needs the Files picker.
+- **Plugins** whose backends load Node modules.
+- **Choosing a folder** to attach (iPadOS gives web views no folder picker); files, photos and the camera work.
 - **Claude Code CLI and subscription logins** need the laptop bridge (phase 2).
 
 ## Develop
