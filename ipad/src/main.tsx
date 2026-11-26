@@ -42,6 +42,7 @@ async function boot() {
 	await import("katex/dist/katex.min.css");
 	await import("@/app/globals.css");
 	await import("./app/fonts.css");
+	await import("./app/ipad.css");
 
 	const server = await import("@/src/server");
 	// WebKit stands in for headless Chrome / resvg / Skia (demos, figures, PDF pages).
