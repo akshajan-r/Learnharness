@@ -205,6 +205,8 @@ export default defineConfig({
 		"process.env": "globalThis.process.env",
 		"process.env.LH_VERSION": JSON.stringify(process.env.npm_package_version ?? "ipad"),
 	},
+	// The image worker loads its modules lazily (code-split), so it's an ES module worker.
+	worker: { format: "es" },
 	server: { fs: { allow: [repoRoot] } },
 	build: {
 		outDir: "dist",
