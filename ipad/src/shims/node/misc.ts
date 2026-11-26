@@ -1,0 +1,128 @@
+/**
+ * Small node:* modules for the iPad runtime. Anything that would launch a
+ * process, open a socket server or start a Node worker is unavailable on
+ * iPadOS and fails loudly; the laptop bridge (phase 2) takes over those jobs.
+ */
+
+export class IpadUnavailableError extends Error {
+	constructor(what: string) {
+		super(`${what} is not available on iPad`);
+		this.name = "IpadUnavailableError";
+	}
+}
+
+const unavailable = (what: string) => () => { throw new IpadUnavailableError(what); };
+
+// ── node:os ──
+export const HOME = "/home";
+export const os = {
+	homedir: () => HOME,
+	tmpdir: () => "/tmp",
+	platform: () => "ios",
+	type: () => "Darwin",
+	arch: () => "arm64",
+	release: () => "",
+	hostname: () => "ipad",
+	EOL: "\n",
+	cpus: () => [],
+	totalmem: () => 0,
+	freemem: () => 0,
+	userInfo: () => ({ username: "learner", homedir: HOME, shell: null, uid: -1, gid: -1 }),
+};
+
+// ── node:url ──
+export function fileURLToPath(url: string | URL): string {
+	const u = typeof url === "string" ? new URL(url) : url;
+	if (u.protocol !== "file:") throw new TypeError(`fileURLToPath: not a file URL: ${u.href}`);
+	return decodeURIComponent(u.pathname);
+}
+export function pathToFileURL(p: string): URL {
+	return new URL(`file://${encodeURI(p)}`);
+}
+
+// ── node:async_hooks ──
+// No async context propagation exists in a web view. Each run() keeps its
+// store for the synchronous call and for the promise it returns; concurrent
+// overlapping runs see the most recent store. Good enough for the capture
+// helpers that use it; revisit if a concurrency bug traces back here.
+export class AsyncLocalStorage<T> {
+	#store: T | undefined;
+	getStore(): T | undefined { return this.#store; }
+	run<R>(store: T, fn: (...args: unknown[]) => R, ...args: unknown[]): R {
+		const previous = this.#store;
+		this.#store = store;
+		let result: R;
+		try { result = fn(...args); }
+		catch (error) { this.#store = previous; throw error; }
+		if (result && typeof (result as { finally?: unknown }).finally === "function") {
+			return (result as unknown as Promise<unknown>).finally(() => { if (this.#store === store) this.#store = previous; }) as R;
+		}
+		this.#store = previous;
+		return result;
+	}
+	enterWith(store: T): void { this.#store = store; }
+	disable(): void { this.#store = undefined; }
+}
+
+// ── node:util (only isDeepStrictEqual is imported directly by LearnHarness;
+//    dependencies get the `util` npm polyfill) ──
+export function isDeepStrictEqual(a: unknown, b: unknown): boolean {
+	if (Object.is(a, b)) return true;
+	if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+	if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
+	if (Array.isArray(a)) {
+		const bb = b as unknown[];
+		return a.length === bb.length && a.every((v, i) => isDeepStrictEqual(v, bb[i]));
+	}
+	const ka = Object.keys(a), kb = Object.keys(b);
+	if (ka.length !== kb.length) return false;
+	return ka.every((k) => Object.prototype.hasOwnProperty.call(b, k)
+		&& isDeepStrictEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
+// ── node:net ──
+const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+export function isIP(input: string): 0 | 4 | 6 {
+	if (IPV4.test(input)) return 4;
+	if (input.includes(":")) {
+		try { new URL(`http://[${input}]/`); return 6; } catch { return 0; }
+	}
+	return 0;
+}
+export class BlockList {
+	#rules: Array<(addr: string) => boolean> = [];
+	addAddress(address: string): void { this.#rules.push((a) => a === address); }
+	addRange(start: string, end: string): void { this.#rules.push((a) => a >= start && a <= end); }
+	addSubnet(net: string, prefix: number): void {
+		const base = ipv4ToInt(net);
+		if (base === null) return;
+		const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+		this.#rules.push((a) => { const v = ipv4ToInt(a); return v !== null && ((v & mask) >>> 0) === ((base & mask) >>> 0); });
+	}
+	check(address: string): boolean { return this.#rules.some((r) => r(address)); }
+}
+function ipv4ToInt(ip: string): number | null {
+	if (!IPV4.test(ip)) return null;
+	return ip.split(".").reduce((acc, part) => ((acc << 8) + Number(part)) >>> 0, 0);
+}
+
+// ── node:module ──
+export const createRequire = () => unavailable("Loading Node modules at runtime");
+
+// ── node:child_process ──
+export const spawn = unavailable("Launching programs");
+export const execFile = unavailable("Launching programs");
+export const exec = unavailable("Launching programs");
+export const fork = unavailable("Launching programs");
+
+// ── node:worker_threads ──
+export class Worker {
+	constructor() { throw new IpadUnavailableError("Node worker threads"); }
+}
+export const parentPort = null;
+export const isMainThread = true;
+export const workerData = undefined;
+
+// ── node:http / node:readline ──
+export const createServer = unavailable("Running an HTTP server");
+export const createInterface = unavailable("Reading from a terminal");

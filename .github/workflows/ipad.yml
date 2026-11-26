@@ -1,0 +1,94 @@
+name: iPad app
+
+# Builds an UNSIGNED LearnHarness.ipa. Install it with Sideloadly or
+# AltStore, which sign it with your own Apple ID (free accounts: the app
+# must be re-signed every 7 days).
+
+on:
+  push:
+    branches: [ipad-app]
+    paths:
+      - "ipad/**"
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "src/**"
+      - "config.ts"
+      - "package-lock.json"
+      - ".github/workflows/ipad.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipad-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  # The iPad build never runs Electron; skip its ~100 MB binary download.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+jobs:
+  ipa:
+    name: Build unsigned .ipa
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            ipad/package-lock.json
+
+      - name: Install app dependencies
+        run: npm ci
+      - name: Install iPad dependencies
+        working-directory: ipad
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: ipad
+        run: npm run typecheck
+      - name: Build web bundle
+        working-directory: ipad
+        run: npm run build
+      - name: Copy bundle into the Xcode project
+        working-directory: ipad
+        run: npx cap sync ios
+
+      - name: Archive (unsigned)
+        working-directory: ipad/ios/App
+        run: |
+          xcodebuild -version
+          xcodebuild archive \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | tail -n 60
+          test -d "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+
+      - name: Package .ipa
+        run: |
+          cd "$RUNNER_TEMP"
+          rm -rf Payload && mkdir Payload
+          cp -R App.xcarchive/Products/Applications/App.app Payload/
+          zip -qry LearnHarness.ipa Payload
+          ls -lh LearnHarness.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LearnHarness-ipa-${{ github.sha }}
+          path: ${{ runner.temp }}/LearnHarness.ipa
+          if-no-files-found: error
+          retention-days: 30

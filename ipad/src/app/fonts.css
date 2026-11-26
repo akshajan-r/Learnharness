@@ -1,0 +1,8 @@
+/* next/font/google replacements, bundled so the app works offline. */
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/source-sans-3";
+
+html {
+	--font-jetbrains: "JetBrains Mono Variable";
+	--font-sans3: "Source Sans 3 Variable";
+}
