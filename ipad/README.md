@@ -21,7 +21,7 @@ With a free Apple ID the app stops opening after **7 days**. Run Sideloadly agai
 | --- | --- |
 | Next.js server process | The same route handlers (`app/api/**/route.ts`), called in-process: `fetch("/api/…")` and `EventSource` are routed to them without a network ([`src/runtime/api.ts`](src/runtime/api.ts)) |
 | Pages as server components | [`src/app/pages.tsx`](src/app/pages.tsx): the same five pages, reading the in-app server directly |
-| Files under the data folder | An in-memory file system (memfs) with the data root (`/data`) saved to IndexedDB ([`src/runtime/persistence.ts`](src/runtime/persistence.ts)) |
+| Files under the data folder | An in-memory file system (memfs) saved to real files ([`src/runtime/persistence.ts`](src/runtime/persistence.ts)): learning data in the app's Documents folder (**Files › On My iPad › LearnHarness**), keys and subscription credentials in its private Library folder. A desktop browser uses IndexedDB instead. |
 | Node built-ins | Browser stand-ins under [`src/shims/node/`](src/shims/node/) |
 | Electron | A Capacitor iOS shell ([`ios/`](ios/)) |
 
@@ -30,7 +30,9 @@ Nothing outside `ipad/` changes to make this work. The desktop code is bundled u
 ## What works
 
 - The full UI, sized for iPad.
-- Settings, providers and models; teaching and practice sessions with streamed replies; saved sessions that survive restarts.
+- Settings, providers and models; teaching and practice sessions with streamed replies.
+- Learning records as plain files you can browse in the Files app and that are included in iPad backups. Keys stay out of the Files app.
+- No surprise keyboard: the on-screen keyboard appears only when you tap a text field, and the app shrinks to the space above it.
 - Model calls straight from the iPad. Verified end to end with a custom OpenAI-compatible endpoint. Providers whose APIs accept browser requests (Anthropic, OpenAI, OpenRouter, Google) should work the same way but haven't been tested with real keys yet. A provider that blocks browser requests (CORS) will need the native-networking path from phase 1.
 
 Not yet (phase 1 and later):
@@ -40,7 +42,6 @@ Not yet (phase 1 and later):
 - **Research web fetches** of arbitrary pages are blocked by web-view CORS rules. Phase 1 moves them to native iOS networking. It also restores the desktop's check of the address each connection actually reaches; today only private/local IP literals and local host names are refused.
 - **Attaching files** (the desktop sends file paths) needs the Files picker.
 - **Claude Code CLI and subscription logins** need the laptop bridge (phase 2).
-- Learning data lives in IndexedDB. Phase 1 moves it to files in the app's Documents folder, visible in the Files app and included in backups.
 
 ## Develop
 
@@ -59,6 +60,6 @@ npm run e2e          # one full teaching turn against the fake model, then reloa
 npx cap sync ios     # copy dist/ into the Xcode project
 ```
 
-`LH_IPAD_MINIFY=1` and `LH_IPAD_SOURCEMAP=1` control the build. On a device, Safari's **Develop** menu (on a Mac) can inspect the running app.
+`LH_IPAD_MINIFY=1` and `LH_IPAD_SOURCEMAP=1` control the build. Add `?lh-files-backend` to the URL to run the iPad's file storage path in a desktop browser. On a device, Safari's **Develop** menu (on a Mac) can inspect the running app.
 
 The `.ipa` is built by [`.github/workflows/ipad.yml`](../.github/workflows/ipad.yml) on a GitHub macOS runner, so no Mac is needed.

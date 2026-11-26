@@ -4,7 +4,11 @@
  */
 import { Buffer } from "../shims/node/buffer.ts";
 
+/** Learning data (Documents on iPad: visible in the Files app). */
 export const DATA_ROOT = "/data";
+/** Keys and subscription credentials (Library on iPad: not in Files). */
+export const PRIVATE_ROOT = "/private";
+/** Read-only files that ship with the app (prompts). */
 export const APP_ROOT = "/app";
 
 type ProcessShim = {
@@ -34,7 +38,7 @@ const proc: ProcessShim = {
 	env: {
 		NODE_ENV: "production",
 		LH_DATA_DIR: DATA_ROOT,
-		LH_AUTH_FILE: `${DATA_ROOT}/auth.json`,
+		LH_AUTH_FILE: `${PRIVATE_ROOT}/auth.json`,
 		LH_PLATFORM: "ipad",
 		NEXT_RUNTIME: "nodejs",
 	},
