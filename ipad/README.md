@@ -8,7 +8,7 @@ Status: **phase 0 (proof of concept).** See [What works](#what-works).
 
 You need a computer with [Sideloadly](https://sideloadly.io) (Windows or Mac) and a free Apple ID.
 
-1. On GitHub, open **Actions → iPad app**, pick the latest successful run, and download the **LearnHarness-ipa-…** artifact. Unzip it to get `LearnHarness.ipa`.
+1. On GitHub, open **Actions → iPad app**, pick the latest successful run, and download the **LearnHarness.ipa** artifact.
 2. Connect the iPad by USB and open Sideloadly. Drag in `LearnHarness.ipa`, enter your Apple ID, and click **Start**.
 3. On the iPad, open **Settings → General → VPN & Device Management**, tap your Apple ID, and choose **Trust**.
 4. Turn on **Settings → Privacy & Security → Developer Mode** if iPadOS asks for it, then restart.
