@@ -13,6 +13,7 @@ import { vol } from "./shims/node/fs.ts";
 import { installAppAssets } from "./runtime/assets.ts";
 import { installApiFetch } from "./runtime/api.ts";
 import { installTouchFocusPolicy } from "./runtime/touch-focus.ts";
+import { installPdfjs } from "./runtime/pdfjs.ts";
 
 function fail(error: unknown) {
 	console.error(error);
@@ -23,17 +24,24 @@ function fail(error: unknown) {
 
 async function boot() {
 	// Inspection handle for dev checks (scripts/*.mjs) and Safari Web Inspector.
-	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts") } });
+	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts") } });
 	await restore();
 	installAppAssets();
 	installApiFetch();
 	installTouchFocusPolicy();
+	installPdfjs();
 
 	await import("katex/dist/katex.min.css");
 	await import("@/app/globals.css");
 	await import("./app/fonts.css");
 
 	const server = await import("@/src/server");
+	// WebKit stands in for headless Chrome / resvg / Skia (demos, figures, PDF pages).
+	const [{ headlessOverride }, { ipadHeadless }] = await Promise.all([
+		import("@/src/agent/subagents/headless.ts"),
+		import("./runtime/headless.ts"),
+	]);
+	headlessOverride.current = ipadHeadless;
 	const { initializeModelCatalog } = await import("@/src/server/remote-model-catalog.ts");
 	initializeModelCatalog();
 	try { await server.initializePlugins(); }

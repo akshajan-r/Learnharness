@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -37,6 +38,33 @@ function virtualImportMetaUrl(): Plugin {
 	};
 }
 
+/**
+ * pdfjs's standard fonts, served where standardFontsDir() (pdf-ops.ts)
+ * points once import.meta.url is virtual: /app/node_modules/pdfjs-dist/
+ * standard_fonts/. In the browser pdfjs fetches them as URLs.
+ */
+function pdfjsStandardFonts(): Plugin {
+	const source = path.join(path.dirname(require.resolve("pdfjs-dist/package.json", { paths: [repoRoot] })), "standard_fonts");
+	const prefix = `${VIRTUAL_ROOT}/node_modules/pdfjs-dist/standard_fonts/`;
+	return {
+		name: "lh-pdfjs-standard-fonts",
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				if (!req.url?.startsWith(prefix)) return next();
+				const file = path.join(source, path.basename(decodeURIComponent(req.url.slice(prefix.length).split("?")[0]!)));
+				if (!fs.existsSync(file)) return next();
+				res.setHeader("Content-Type", "application/octet-stream");
+				fs.createReadStream(file).pipe(res);
+			});
+		},
+		generateBundle() {
+			for (const name of fs.readdirSync(source)) {
+				this.emitFile({ type: "asset", fileName: `${prefix.slice(1)}${name}`, source: fs.readFileSync(path.join(source, name)) });
+			}
+		},
+	};
+}
+
 const nodeShims: Record<string, string> = {
 	fs: shim("node/fs.ts"),
 	"fs/promises": shim("node/fs-promises.ts"),
@@ -67,7 +95,9 @@ const alias = [
 	{ find: /^next\/server$/, replacement: shim("next/server.ts") },
 	{ find: /^undici$/, replacement: shim("node/undici.ts") },
 	// Native add-ons and headless Chrome: no iPad build (see the shim).
-	{ find: /^(@resvg\/resvg-js|@napi-rs\/canvas|puppeteer-core|@silvia-odwyer\/photon-node)$/, replacement: shim("unavailable/native.ts") },
+	// Skia canvas → WebKit OffscreenCanvas (pdfjs page rendering).
+	{ find: /^@napi-rs\/canvas$/, replacement: shim("native/canvas.ts") },
+	{ find: /^(@resvg\/resvg-js|puppeteer-core|@silvia-odwyer\/photon-node)$/, replacement: shim("unavailable/native.ts") },
 	...Object.entries(nodeShims).flatMap(([name, target]) => [
 		{ find: new RegExp(`^node:${name.replace("/", "\\/")}$`), replacement: target },
 		{ find: new RegExp(`^${name.replace("/", "\\/")}$`), replacement: target },
@@ -85,7 +115,7 @@ export default defineConfig({
 	// Fonts, plugin loader assets, worklets — shared with desktop.
 	publicDir: path.join(repoRoot, "public"),
 	css: { postcss: { plugins: [tailwind({ base: repoRoot })] } },
-	plugins: [virtualImportMetaUrl(), react()],
+	plugins: [virtualImportMetaUrl(), pdfjsStandardFonts(), react()],
 	resolve: { alias },
 	define: {
 		"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "production"),
