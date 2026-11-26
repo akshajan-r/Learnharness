@@ -35,7 +35,9 @@ env:
 jobs:
   ipa:
     name: Build unsigned .ipa
-    runs-on: macos-15
+    # Intel macOS runners: the same Xcode builds the same arm64 iPad app,
+    # and their queue is separate from the often-saturated Apple Silicon one.
+    runs-on: macos-15-intel
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
