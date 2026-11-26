@@ -24,6 +24,7 @@ import type { ModelCatalogEntry } from "@/src/core";
 import { CLAUDE_CODE_PROVIDER, CUSTOM_PROVIDER, fuzzyScore, subscriptionLabel } from "@/src/core";
 import { formatTokens } from "@/components/usage-format";
 import { SearchMenuList } from "./search-menu-list";
+import { focusSearchOnOpen } from "@/components/on-screen-keyboard";
 
 function priceLabel(cost: ModelCatalogEntry["cost"]): string {
 	if (!cost) return "Unpriced";
@@ -163,7 +164,7 @@ export function ProviderMenuList({
 	const listRef = useRef<HTMLUListElement>(null);
 
 	useEffect(() => {
-		searchRef.current?.focus();
+		focusSearchOnOpen(searchRef.current);
 	}, []);
 
 	useEffect(() => {
@@ -293,7 +294,7 @@ export function FontMenuList({
 	const listRef = useRef<HTMLUListElement>(null);
 
 	useEffect(() => {
-		searchRef.current?.focus();
+		focusSearchOnOpen(searchRef.current);
 	}, []);
 
 	useEffect(() => {

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefO
 import { createPortal } from "react-dom";
 import { INTERACTION_LAYER_Z_BASE } from "./host-dialog";
 import { InteractionLayerOwner, useInteractionLayer, useInteractionLayers, type CloseOutcome, type CloseReason } from "./interaction-layers";
+import { touchOnlyDevice } from "./on-screen-keyboard";
 
 /**
  * THE shared menu shell (menu standardization, fix wave chunk B): one
@@ -179,7 +180,8 @@ export function MenuShell({
 		focusedOnceRef.current = true;
 		const el = menuRef.current;
 		if (!el) return;
-		const input = el.querySelector<HTMLElement>("input, textarea");
+		// Touch-only devices: the body, so no on-screen keyboard pops up.
+		const input = touchOnlyDevice() ? null : el.querySelector<HTMLElement>("input, textarea");
 		(input ?? el).focus();
 	}, [placed, layer.isTop]);
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { fuzzyScore } from "@/src/core";
+import { focusSearchOnOpen } from "@/components/on-screen-keyboard";
 
 /** The model picker's search, arrow-walk, row styling and scrolling machine.
  * Models and dictation languages supply only their catalog and row content.
@@ -36,7 +37,7 @@ export function SearchMenuList<T>({
 	const searchRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLUListElement>(null);
 
-	useEffect(() => { searchRef.current?.focus(); }, []);
+	useEffect(() => { focusSearchOnOpen(searchRef.current); }, []);
 	useEffect(() => {
 		if (menuIdx === null) return;
 		listRef.current?.querySelector(`[data-idx="${menuIdx}"]`)?.scrollIntoView({ block: "nearest" });
