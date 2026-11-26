@@ -9,3 +9,8 @@ declare module "path-browserify" {
 	const path: typeof import("node:path").posix;
 	export default path;
 }
+
+declare module "qrcode-terminal" {
+	const qrcode: { generate(text: string, options?: { small?: boolean }, callback?: (qr: string) => void): void };
+	export default qrcode;
+}

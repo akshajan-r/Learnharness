@@ -15,6 +15,23 @@ You need a computer with [Sideloadly](https://sideloadly.io) (Windows or Mac) an
 
 With a free Apple ID the app stops opening after **7 days**. Run Sideloadly again to re-sign it; your data stays on the iPad.
 
+## Laptop bridge (Claude Code, running code)
+
+Two things iPadOS can't do run on your laptop instead: the **Claude Code CLI** as a model provider, and **running programs** for Coding Questions' tests. Everything else stays on the iPad, and the app works fully without the laptop.
+
+One-time setup:
+1. Install [Tailscale](https://tailscale.com) on the laptop and the iPad, signed in to the same account.
+2. Enable **Serve** and **HTTPS certificates** for your tailnet (the bridge prints the exact link if they're off).
+3. On the laptop, in the learnharness folder: `npm ci && npm run bridge`.
+4. Point the iPad camera at the QR code it prints and tap the banner. LearnHarness opens and confirms the pairing. It's remembered; scan again only if you re-pair.
+5. In LearnHarness: **Settings → Providers → External CLI → Claude Code**, turn it on, then pick `opus`, `sonnet` or `haiku` in the model picker.
+
+After that, run `npm run bridge` whenever you want Claude Code or code running on the iPad, and close the window to stop it.
+
+How it works: [`bridge/server.ts`](bridge/server.ts) listens on `127.0.0.1:8790` and is published with `tailscale serve` at `https://<laptop>.<tailnet>.ts.net`, so it's reachable only from your own devices. Every request needs the pairing code, a random secret in `~/.learnharness-bridge/token`. The CLI keeps its own login on the laptop, and your API keys never leave the iPad.
+- **Claude Code:** the iPad sends each model turn; the bridge runs LearnHarness's own Claude Code engine and streams its events back (gzip'd NDJSON), including tool calls and held processes waiting for your answers.
+- **Code running:** the iPad sends the program, arguments, stdin and working files; they run in a fresh temporary folder (60 s limit). Only allowlisted programs run: `LH_BRIDGE_PROGRAMS`, default `python,python3,py,node`.
+
 ## How it works
 
 | Desktop | iPad |
@@ -42,7 +59,6 @@ Nothing outside `ipad/` changes to make this work. The desktop code is bundled u
 Not yet (phase 1 and later):
 
 - **Community plugins** (installed into learning data). The four core plugins work.
-- **Running code** in Coding Questions (it launches local programs) and the **Claude Code CLI**: these need the laptop bridge (phase 2).
 - **Choosing a folder** to attach (iPadOS gives web views no folder picker); files, photos and the camera work.
 - **Claude Code CLI and subscription logins** need the laptop bridge (phase 2).
 

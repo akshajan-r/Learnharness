@@ -17,6 +17,7 @@ import { installDiagnostics } from "./runtime/diagnostics.ts";
 import { installPdfjs } from "./runtime/pdfjs.ts";
 import { installAttachmentBridge } from "./runtime/attachments.ts";
 import { installCorePluginFiles, installPluginAssetUrls } from "./runtime/plugins.ts";
+import { installBridgePairing } from "./runtime/bridge.ts";
 
 function fail(error: unknown) {
 	console.error(error);
@@ -27,7 +28,7 @@ function fail(error: unknown) {
 
 async function boot() {
 	// Inspection handle for dev checks (scripts/*.mjs) and Safari Web Inspector.
-	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts"), image: () => import("@/src/agent/tools/learner-image.ts"), resize: () => import("@/src/agent/image-processing/resize.ts"), fsTools: () => import("@/src/agent/tools/fs-shared.ts") } });
+	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts"), image: () => import("@/src/agent/tools/learner-image.ts"), resize: () => import("@/src/agent/image-processing/resize.ts"), fsTools: () => import("@/src/agent/tools/fs-shared.ts"), spawn: () => import("./bridge/remote-spawn.ts"), bridge: () => import("./runtime/bridge.ts") } });
 	await restore();
 	installAppAssets();
 	installApiFetch();
@@ -53,6 +54,8 @@ async function boot() {
 	initializeModelCatalog();
 	try { await server.initializePlugins(); }
 	catch (error) { console.error("[plugins] Initialization failed; plugin management will report the error:", error); }
+
+	void installBridgePairing();
 
 	const boot = server.readThemeBoot();
 	const html = document.documentElement;

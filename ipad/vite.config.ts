@@ -39,6 +39,25 @@ function virtualImportMetaUrl(): Plugin {
 }
 
 /**
+ * Replace specific repo modules with iPad versions, by resolved path (any
+ * import specifier that resolves to the original gets the replacement).
+ */
+function replaceModules(map: Record<string, string>): Plugin {
+	const targets = new Map(Object.entries(map).map(([from, to]) => [path.normalize(path.join(repoRoot, from)).toLowerCase(), to]));
+	return {
+		name: "lh-replace-modules",
+		enforce: "pre",
+		async resolveId(source, importer, options) {
+			if (!importer || source.startsWith("\0")) return null;
+			const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
+			if (!resolved) return null;
+			const replacement = targets.get(path.normalize(resolved.id.split("?")[0]!).toLowerCase());
+			return replacement ?? null;
+		},
+	};
+}
+
+/**
  * pdfjs's standard fonts, served where standardFontsDir() (pdf-ops.ts)
  * points once import.meta.url is virtual: /app/node_modules/pdfjs-dist/
  * standard_fonts/. In the browser pdfjs fetches them as URLs.
@@ -165,7 +184,18 @@ export default defineConfig({
 	// Fonts, plugin loader assets, worklets — shared with desktop.
 	publicDir: path.join(repoRoot, "public"),
 	css: { postcss: { plugins: [tailwind({ base: repoRoot })] } },
-	plugins: [virtualImportMetaUrl(), pdfjsStandardFonts(), corePlugins(), react()],
+	plugins: [
+		virtualImportMetaUrl(),
+		// The Claude Code CLI runs on the laptop bridge (src/bridge/).
+		replaceModules({
+			"src/agent/claude-code/stream.ts": shim("../bridge/claude-code-stream.ts"),
+			"src/agent/claude-code/installation.ts": shim("../bridge/claude-code-installation.ts"),
+			"src/agent/claude-code/binary.ts": shim("../bridge/claude-code-binary.ts"),
+		}),
+		pdfjsStandardFonts(),
+		corePlugins(),
+		react(),
+	],
 	resolve: { alias },
 	define: {
 		"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "production"),

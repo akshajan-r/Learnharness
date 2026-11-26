@@ -80,6 +80,18 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<!-- learnharness://bridge?url=…&code=… pairs the laptop bridge (QR from `npm run bridge`). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.akshajan.learnharness</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>learnharness</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
