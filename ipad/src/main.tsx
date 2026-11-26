@@ -12,6 +12,7 @@ import { restore, flush } from "./runtime/persistence.ts";
 import { vol } from "./shims/node/fs.ts";
 import { installAppAssets } from "./runtime/assets.ts";
 import { installApiFetch } from "./runtime/api.ts";
+import { installTouchFocusPolicy } from "./runtime/touch-focus.ts";
 
 function fail(error: unknown) {
 	console.error(error);
@@ -26,6 +27,7 @@ async function boot() {
 	await restore();
 	installAppAssets();
 	installApiFetch();
+	installTouchFocusPolicy();
 
 	await import("katex/dist/katex.min.css");
 	await import("@/app/globals.css");
