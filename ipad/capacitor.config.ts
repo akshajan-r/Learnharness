@@ -5,6 +5,8 @@ const config: CapacitorConfig = {
 	appName: "LearnHarness",
 	webDir: "dist",
 	ios: {
+		// The app's dark background while the web view loads (no white flash).
+		backgroundColor: "#141414",
 		// The app draws its own chrome edge to edge.
 		contentInset: "never",
 		// Long lessons scroll inside the app's panes, not the web view itself.
