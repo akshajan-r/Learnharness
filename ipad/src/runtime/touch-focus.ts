@@ -32,12 +32,42 @@ function raisesKeyboard(el: Element): boolean {
 	return el instanceof HTMLElement && el.isContentEditable;
 }
 
+/**
+ * Chromium focus semantics for buttons.
+ *
+ * The UI is built on Chromium (Electron), where pressing a button focuses
+ * it, so focus moves INTO the pressed control. WebKit (iPad, Safari) never
+ * focuses a button on press: the press clears focus instead, and the
+ * previously focused element blurs with relatedTarget = null. Popups that
+ * close when focus leaves them (the attach and extract-files menus) then
+ * close on the very press meant for one of their items, before its click
+ * arrives, so nothing happens.
+ *
+ * Here a press on a button-like control is handled as Chromium does: its
+ * default action (WebKit's focus clearing) is prevented and the control is
+ * focused, so focus moves to it and blur handlers see where it went. The
+ * click itself is unaffected.
+ */
+const PRESSABLE = 'button, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="tab"], summary';
+
+function installButtonFocusParity(): void {
+	addEventListener("mousedown", (event) => {
+		if (event.button !== 0 || !(event.target instanceof Element)) return;
+		const control = event.target.closest<HTMLElement>(PRESSABLE);
+		if (!control || control.matches(":disabled, [aria-disabled='true']") || control.isContentEditable) return;
+		event.preventDefault();
+		if (document.activeElement !== control) control.focus({ preventScroll: true });
+	}, { capture: true });
+}
+
 export function installTouchFocusPolicy(): void {
 	const markIntent = () => { lastIntentAt = performance.now(); };
 	// Capture phase: recorded before any handler that might focus a field.
 	for (const type of ["pointerdown", "touchend", "click", "keydown"] as const) {
 		addEventListener(type, markIntent, { capture: true, passive: true });
 	}
+
+	installButtonFocusParity();
 
 	const blocked = () => touchOnlyDevice() && performance.now() - lastIntentAt > INTENT_WINDOW_MS;
 
