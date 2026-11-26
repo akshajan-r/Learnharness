@@ -13,6 +13,7 @@ import { vol } from "./shims/node/fs.ts";
 import { installAppAssets } from "./runtime/assets.ts";
 import { installApiFetch } from "./runtime/api.ts";
 import { installTouchFocusPolicy } from "./runtime/touch-focus.ts";
+import { installDiagnostics } from "./runtime/diagnostics.ts";
 import { installPdfjs } from "./runtime/pdfjs.ts";
 import { installAttachmentBridge } from "./runtime/attachments.ts";
 import { installCorePluginFiles, installPluginAssetUrls } from "./runtime/plugins.ts";
@@ -30,6 +31,7 @@ async function boot() {
 	await restore();
 	installAppAssets();
 	installApiFetch();
+	installDiagnostics();
 	installTouchFocusPolicy();
 	installPdfjs();
 	installAttachmentBridge();
