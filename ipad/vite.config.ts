@@ -97,7 +97,9 @@ const alias = [
 	// Native add-ons and headless Chrome: no iPad build (see the shim).
 	// Skia canvas → WebKit OffscreenCanvas (pdfjs page rendering).
 	{ find: /^@napi-rs\/canvas$/, replacement: shim("native/canvas.ts") },
-	{ find: /^(@resvg\/resvg-js|puppeteer-core|@silvia-odwyer\/photon-node)$/, replacement: shim("unavailable/native.ts") },
+	// photon-node (Node WASM loader) → photon's browser build.
+	{ find: /^@silvia-odwyer\/photon-node$/, replacement: shim("native/photon.ts") },
+	{ find: /^(@resvg\/resvg-js|puppeteer-core)$/, replacement: shim("unavailable/native.ts") },
 	...Object.entries(nodeShims).flatMap(([name, target]) => [
 		{ find: new RegExp(`^node:${name.replace("/", "\\/")}$`), replacement: target },
 		{ find: new RegExp(`^${name.replace("/", "\\/")}$`), replacement: target },

@@ -24,6 +24,7 @@
 		"@fontsource-variable/jetbrains-mono": "^5.3.0",
 		"@fontsource-variable/source-sans-3": "^5.3.1",
 		"@noble/hashes": "^2.4.0",
+		"@silvia-odwyer/photon": "^0.3.3",
 		"assert": "^2.1.0",
 		"buffer": "^6.0.3",
 		"events": "^3.3.0",

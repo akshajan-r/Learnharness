@@ -148,13 +148,7 @@ export const execFile = unavailable("Launching programs");
 export const exec = unavailable("Launching programs");
 export const fork = unavailable("Launching programs");
 
-// ── node:worker_threads ──
-export class Worker {
-	constructor() { throw new IpadUnavailableError("Node worker threads"); }
-}
-export const parentPort = null;
-export const isMainThread = true;
-export const workerData = undefined;
+// node:worker_threads lives in worker_threads.ts (in-process image workers).
 
 // ── node:http / node:readline ──
 export const createServer = unavailable("Running an HTTP server");

@@ -24,7 +24,7 @@ function fail(error: unknown) {
 
 async function boot() {
 	// Inspection handle for dev checks (scripts/*.mjs) and Safari Web Inspector.
-	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts") } });
+	Object.assign(globalThis, { __lh: { vol, flush, undici: () => import("./shims/node/undici.ts"), headless: () => import("@/src/agent/subagents/headless.ts"), pdf: () => import("@/src/agent/subagents/pdf-ops.ts"), image: () => import("@/src/agent/tools/learner-image.ts"), resize: () => import("@/src/agent/image-processing/resize.ts") } });
 	await restore();
 	installAppAssets();
 	installApiFetch();
