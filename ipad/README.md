@@ -35,18 +35,20 @@ Nothing outside `ipad/` changes to make this work. The desktop code is bundled u
 - No surprise keyboard: the on-screen keyboard appears only when you tap a text field, and the app shrinks to the space above it.
 - Attachments: the paperclip (or a drag in Split View) copies files, photos or camera shots into **LearnHarness › Attachments**, the agent's home folder. Files you put there with the Files app are picked up on the next launch.
 - Research: web pages, PDFs and search APIs go through iOS networking (no web-view CORS limits). Private and local addresses are refused before each hop, using a DNS-over-HTTPS lookup for host names.
+- The core plugins (Flashcards, Drawing Pad, Coding Questions, Rich Code Blocks): shipped in the app bundle, loaded into the in-app server, backends run in-process.
 - Visuals, PDF figures and demo checks, with WebKit in place of resvg, Skia and headless Chrome (a sandboxed hidden frame runs demos). Photos are normalized with photon's browser build.
 - Model calls straight from the iPad. Verified end to end with a custom OpenAI-compatible endpoint. Providers whose APIs accept browser requests (Anthropic, OpenAI, OpenRouter, Google) should work the same way but haven't been tested with real keys yet. A provider that blocks browser requests (CORS) will need the native-networking path from phase 1.
 
 Not yet (phase 1 and later):
 
-- **Plugins** whose backends load Node modules.
+- **Community plugins** (installed into learning data). The four core plugins work.
+- **Running code** in Coding Questions (it launches local programs) and the **Claude Code CLI**: these need the laptop bridge (phase 2).
 - **Choosing a folder** to attach (iPadOS gives web views no folder picker); files, photos and the camera work.
 - **Claude Code CLI and subscription logins** need the laptop bridge (phase 2).
 
 ## Develop
 
-From the repo root, after the normal `npm ci && npm run plugins:setup`:
+From the repo root, after the normal `npm ci && npm run plugins:setup && npm run plugins:build-core` (the iPad bundle ships the built core plugins):
 
 ```sh
 cd ipad

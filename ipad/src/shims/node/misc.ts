@@ -142,8 +142,7 @@ function ipv6ToBigInt(ip: string): bigint | null {
 	return groups.reduce((acc, g) => (acc << 16n) + BigInt(parseInt(g || "0", 16)), 0n);
 }
 
-// ── node:module ──
-export const createRequire = () => unavailable("Loading Node modules at runtime");
+// node:module lives in module.ts (in-process plugin backend loading).
 
 // ── node:child_process ──
 export const spawn = unavailable("Launching programs");

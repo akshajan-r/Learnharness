@@ -65,6 +65,54 @@ function pdfjsStandardFonts(): Plugin {
 	};
 }
 
+/**
+ * The app-shipped core plugins (core-plugins/, built by `npm run
+ * plugins:build-core`) as static files at /app/core-plugins/<id>/…, plus
+ * "virtual:lh-core-plugin-files", the list boot loads into the virtual file
+ * system (src/runtime/plugins.ts).
+ */
+function corePlugins(): Plugin {
+	const source = path.join(repoRoot, "core-plugins");
+	const prefix = `${VIRTUAL_ROOT}/core-plugins/`;
+	const id = "virtual:lh-core-plugin-files";
+	const list = (): string[] => {
+		if (!fs.existsSync(source)) {
+			throw new Error("core-plugins/ is missing: run `npm run plugins:setup && npm run plugins:build-core` in the repo root first.");
+		}
+		const out: string[] = [];
+		const walk = (rel: string) => {
+			for (const name of fs.readdirSync(path.join(source, rel)).sort()) {
+				const file = rel ? `${rel}/${name}` : name;
+				if (fs.statSync(path.join(source, file)).isDirectory()) walk(file);
+				else out.push(file);
+			}
+		};
+		walk("");
+		return out;
+	};
+	return {
+		name: "lh-core-plugins",
+		resolveId: (request) => (request === id ? `\0${id}` : null),
+		load: (request) => (request === `\0${id}` ? `export default ${JSON.stringify(list())};` : null),
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				if (!req.url?.startsWith(prefix)) return next();
+				const rel = decodeURIComponent(req.url.slice(prefix.length).split("?")[0]!);
+				const file = path.resolve(source, rel);
+				if (!file.startsWith(source + path.sep) || !fs.existsSync(file)) return next();
+				const ext = path.extname(file);
+				res.setHeader("Content-Type", ext === ".js" ? "text/javascript" : ext === ".css" ? "text/css" : "application/octet-stream");
+				fs.createReadStream(file).pipe(res);
+			});
+		},
+		generateBundle() {
+			for (const rel of list()) {
+				this.emitFile({ type: "asset", fileName: `${prefix.slice(1)}${rel}`, source: fs.readFileSync(path.join(source, rel)) });
+			}
+		},
+	};
+}
+
 const nodeShims: Record<string, string> = {
 	fs: shim("node/fs.ts"),
 	"fs/promises": shim("node/fs-promises.ts"),
@@ -117,7 +165,7 @@ export default defineConfig({
 	// Fonts, plugin loader assets, worklets — shared with desktop.
 	publicDir: path.join(repoRoot, "public"),
 	css: { postcss: { plugins: [tailwind({ base: repoRoot })] } },
-	plugins: [virtualImportMetaUrl(), pdfjsStandardFonts(), react()],
+	plugins: [virtualImportMetaUrl(), pdfjsStandardFonts(), corePlugins(), react()],
 	resolve: { alias },
 	define: {
 		"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "production"),

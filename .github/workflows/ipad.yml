@@ -13,6 +13,8 @@ on:
       - "components/**"
       - "lib/**"
       - "src/**"
+      - "plugins/**"
+      - "core-plugins.json"
       - "config.ts"
       - "package-lock.json"
       - ".github/workflows/ipad.yml"
@@ -47,6 +49,10 @@ jobs:
 
       - name: Install app dependencies
         run: npm ci
+      - name: Build core plugins
+        run: |
+          npm run plugins:setup
+          npm run plugins:build-core
       - name: Install iPad dependencies
         working-directory: ipad
         run: npm ci

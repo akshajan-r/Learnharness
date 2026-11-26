@@ -15,6 +15,7 @@ import { installApiFetch } from "./runtime/api.ts";
 import { installTouchFocusPolicy } from "./runtime/touch-focus.ts";
 import { installPdfjs } from "./runtime/pdfjs.ts";
 import { installAttachmentBridge } from "./runtime/attachments.ts";
+import { installCorePluginFiles, installPluginAssetUrls } from "./runtime/plugins.ts";
 
 function fail(error: unknown) {
 	console.error(error);
@@ -32,6 +33,8 @@ async function boot() {
 	installTouchFocusPolicy();
 	installPdfjs();
 	installAttachmentBridge();
+	installPluginAssetUrls();
+	await installCorePluginFiles();
 
 	await import("katex/dist/katex.min.css");
 	await import("@/app/globals.css");
