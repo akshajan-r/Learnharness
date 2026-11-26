@@ -60,6 +60,13 @@ const proc: ProcessShim = {
 	kill() { return false; },
 };
 
-g.process = proc;
+// Complete the early stub from index.html in place, so modules that already
+// captured it (or its env) see the full shim.
+if (g.process) {
+	Object.assign(g.process.env, proc.env);
+	Object.assign(g.process, { ...proc, env: g.process.env });
+} else {
+	g.process = proc;
+}
 g.Buffer ??= Buffer;
 g.global ??= globalThis;

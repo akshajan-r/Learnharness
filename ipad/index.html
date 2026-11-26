@@ -7,6 +7,14 @@
 	</head>
 	<body>
 		<div id="root"></div>
+		<!-- A minimal Node process object before any module code: some bundled
+		     dependencies read process.env as they load, possibly before
+		     src/runtime/node-globals.ts runs. node-globals.ts completes this
+		     same object. -->
+		<script>
+			globalThis.process = globalThis.process || { env: { NODE_ENV: "production" }, platform: "ios", versions: {}, cwd: function () { return "/app"; } };
+			globalThis.global = globalThis.global || globalThis;
+		</script>
 		<script type="module" src="/src/main.tsx"></script>
 	</body>
 </html>
